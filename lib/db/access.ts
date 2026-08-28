@@ -1,0 +1,213 @@
+import { and, cosineDistance, desc, eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { chunks, notebooks, sources } from "@/lib/db/schema";
+import type { UserId } from "@/lib/db/user-id";
+
+/**
+ * The tenant-scoped access layer.
+ *
+ * This module is the only place in the application that reads or writes
+ * application data. Three rules hold for every function below, and together they
+ * are the whole of the isolation guarantee:
+ *
+ * 1. The first parameter is a `UserId`, a branded string that cannot be
+ *    fabricated from request input. A route handler that has not resolved a
+ *    session has nothing to pass here and will not compile.
+ *
+ * 2. Every statement carries `eq(table.ownerId, userId)` in its WHERE clause.
+ *    That is why `ownerId` is denormalised onto every table rather than reached
+ *    through a join to `notebooks`: the tenant filter then lives in the same
+ *    clause as the query it protects, including the vector search, instead of
+ *    in a separate check further up the call stack that a later caller could
+ *    forget. A missing filter is visible in the query itself, not in its
+ *    absence somewhere else.
+ *
+ * 3. A row that exists but belongs to somebody else is indistinguishable from a
+ *    row that does not exist: these functions return `null` or `false` either
+ *    way, so callers answer 404 and never confirm that an id is real.
+ *
+ * What the type system cannot do is stop somebody from bypassing this module
+ * entirely and importing the database handle directly. TypeScript has no notion
+ * of "this import is only legal from that directory". That gap is closed by the
+ * `no-restricted-imports` rule in eslint.config.mjs, which forbids importing
+ * `lib/db/client` or a raw driver anywhere outside `lib/db/`, and by a test that
+ * lints a synthetic violation to prove the rule is actually armed rather than
+ * silently misconfigured.
+ */
+
+/** Upper bound on any result set, so no caller can ask for an unbounded read. */
+const MAX_ROWS = 100;
+
+function clampLimit(limit: number): number {
+  return Math.max(1, Math.min(Math.trunc(limit), MAX_ROWS));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Notebooks                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export async function listNotebooks(userId: UserId) {
+  return getDb()
+    .select()
+    .from(notebooks)
+    .where(eq(notebooks.ownerId, userId))
+    .orderBy(desc(notebooks.createdAt))
+    .limit(MAX_ROWS);
+}
+
+export async function createNotebook(userId: UserId, title: string) {
+  const [created] = await getDb()
+    .insert(notebooks)
+    .values({ ownerId: userId, title })
+    .returning();
+  return created ?? null;
+}
+
+export async function getNotebook(userId: UserId, notebookId: string) {
+  const [found] = await getDb()
+    .select()
+    .from(notebooks)
+    .where(and(eq(notebooks.id, notebookId), eq(notebooks.ownerId, userId)))
+    .limit(1);
+  return found ?? null;
+}
+
+export async function renameNotebook(userId: UserId, notebookId: string, title: string) {
+  const [updated] = await getDb()
+    .update(notebooks)
+    .set({ title })
+    .where(and(eq(notebooks.id, notebookId), eq(notebooks.ownerId, userId)))
+    .returning();
+  return updated ?? null;
+}
+
+export async function deleteNotebook(userId: UserId, notebookId: string) {
+  const deleted = await getDb()
+    .delete(notebooks)
+    .where(and(eq(notebooks.id, notebookId), eq(notebooks.ownerId, userId)))
+    .returning({ id: notebooks.id });
+  return deleted.length > 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sources                                                                    */
+/* -------------------------------------------------------------------------- */
+
+type NewSource = {
+  notebookId: string;
+  filename: string;
+  mimeType: string;
+  blobPathname: string;
+};
+
+export async function createSource(userId: UserId, source: NewSource) {
+  // The notebook is fetched through the tenant-scoped reader, so a source can
+  // never be attached to a notebook the caller does not own.
+  const notebook = await getNotebook(userId, source.notebookId);
+  if (!notebook) return null;
+
+  const [created] = await getDb()
+    .insert(sources)
+    .values({ ...source, ownerId: userId })
+    .returning();
+  return created ?? null;
+}
+
+export async function listSources(userId: UserId, notebookId: string) {
+  return getDb()
+    .select()
+    .from(sources)
+    .where(and(eq(sources.ownerId, userId), eq(sources.notebookId, notebookId)))
+    .orderBy(desc(sources.createdAt))
+    .limit(MAX_ROWS);
+}
+
+export async function getSource(userId: UserId, sourceId: string) {
+  const [found] = await getDb()
+    .select()
+    .from(sources)
+    .where(and(eq(sources.id, sourceId), eq(sources.ownerId, userId)))
+    .limit(1);
+  return found ?? null;
+}
+
+type SourceStatus = (typeof sources.status.enumValues)[number];
+
+export async function updateSourceStatus(
+  userId: UserId,
+  sourceId: string,
+  status: SourceStatus,
+  statusMessage: string | null = null,
+) {
+  const [updated] = await getDb()
+    .update(sources)
+    .set({ status, statusMessage })
+    .where(and(eq(sources.id, sourceId), eq(sources.ownerId, userId)))
+    .returning({ id: sources.id });
+  return updated !== undefined;
+}
+
+export async function saveExtractedText(userId: UserId, sourceId: string, text: string) {
+  const [updated] = await getDb()
+    .update(sources)
+    .set({ extractedText: text })
+    .where(and(eq(sources.id, sourceId), eq(sources.ownerId, userId)))
+    .returning({ id: sources.id });
+  return updated !== undefined;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Chunks                                                                     */
+/* -------------------------------------------------------------------------- */
+
+type NewChunk = {
+  sourceId: string;
+  notebookId: string;
+  content: string;
+  charStart: number;
+  charEnd: number;
+  embedding: number[];
+};
+
+export async function insertChunks(userId: UserId, rows: NewChunk[]) {
+  if (rows.length === 0) return 0;
+  const inserted = await getDb()
+    .insert(chunks)
+    .values(rows.map((row) => ({ ...row, ownerId: userId })))
+    .returning({ id: chunks.id });
+  return inserted.length;
+}
+
+/**
+ * Nearest-neighbour search inside one notebook.
+ *
+ * The tenant filter and the notebook filter sit in the same WHERE clause as the
+ * distance ordering. There is no variant of this function without them, and no
+ * caller can pass a user id it did not get from a session, which is what makes
+ * "user B never retrieves user A's chunks" a property of the query rather than
+ * of the discipline of whoever calls it.
+ */
+export async function searchChunks(
+  userId: UserId,
+  notebookId: string,
+  queryEmbedding: number[],
+  limit = 8,
+) {
+  const distance = cosineDistance(chunks.embedding, queryEmbedding);
+
+  return getDb()
+    .select({
+      id: chunks.id,
+      sourceId: chunks.sourceId,
+      filename: sources.filename,
+      content: chunks.content,
+      charStart: chunks.charStart,
+      charEnd: chunks.charEnd,
+      similarity: sql<number>`1 - ${distance}`,
+    })
+    .from(chunks)
+    .innerJoin(sources, eq(sources.id, chunks.sourceId))
+    .where(and(eq(chunks.ownerId, userId), eq(chunks.notebookId, notebookId)))
+    .orderBy(distance)
+    .limit(clampLimit(limit));
+}

@@ -1,31 +1,12 @@
 import { NextResponse } from "next/server";
-import { getSql } from "@/lib/db/client";
+import { checkDatabaseHealth } from "@/lib/db/health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Liveness probe for the Phase 0 foundation: is the database reachable and is
- * the pgvector extension available on it?
- *
- * The response body carries booleans only. Connection errors are logged server
- * side and never returned to the caller, so a failed probe cannot leak the host,
- * database name, or credentials of the connection string.
- */
+/** Liveness probe for the foundation: database reachable, pgvector available. */
 export async function GET() {
-  try {
-    const rows = await getSql()<{ vector_available: boolean }[]>`
-      SELECT EXISTS (
-        SELECT 1 FROM pg_available_extensions WHERE name = 'vector'
-      ) AS vector_available
-    `;
-
-    return NextResponse.json({
-      database: true,
-      pgvector: rows[0]?.vector_available ?? false,
-    });
-  } catch (error) {
-    console.error("[health] database probe failed", error);
-    return NextResponse.json({ database: false, pgvector: false }, { status: 503 });
-  }
+  const health = await checkDatabaseHealth();
+  const ok = health.database && health.pgvector;
+  return NextResponse.json(health, { status: ok ? 200 : 503 });
 }
