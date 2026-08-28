@@ -1,5 +1,10 @@
+import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
-import "dotenv/config";
+
+// Local runs read .env.local, the same file `vercel env pull` writes. In CI and
+// on Vercel the variables are already in the environment and dotenv leaves them
+// alone.
+config({ path: ".env.local" });
 
 // Migrations run over the direct (unpooled) connection. PgBouncer in
 // transaction mode cannot execute the DDL statements drizzle-kit emits.
