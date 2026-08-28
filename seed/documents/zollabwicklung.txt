@@ -1,0 +1,35 @@
+Zollabwicklung in der Seehafenlogistik
+
+1. IT-Verfahren
+
+Die Zollanmeldung erfolgt in Deutschland elektronisch über das Verfahren ATLAS,
+Automatisiertes Tarif- und Lokales Zollabwicklungssystem. Papieranmeldungen sind
+nur noch im Notfallverfahren bei Ausfall der Systeme zulässig.
+
+2. Summarische Eingangsanmeldung
+
+Für Waren, die in das Zollgebiet der Union verbracht werden, ist eine
+summarische Eingangsanmeldung abzugeben. Im Seeverkehr mit Containern beträgt
+die Frist 24 Stunden vor Beginn des Verladens im Abgangshafen. Für Kurzstrecken
+im Seeverkehr verkürzt sie sich auf zwei Stunden vor Ankunft.
+
+3. Versandverfahren
+
+Das gemeinsame Versandverfahren erlaubt die Beförderung von Nichtunionswaren
+zwischen zwei Zollstellen ohne Erhebung von Einfuhrabgaben. Der Hauptverpflichtete
+haftet für die ordnungsgemäße Gestellung. Eine Gesamtbürgschaft kann bei
+Zuverlässigkeit auf bis zu 30 Prozent des Referenzbetrags reduziert werden.
+
+4. Zugelassener Wirtschaftsbeteiligter
+
+Der Status des zugelassenen Wirtschaftsbeteiligten, kurz AEO, bringt weniger
+Kontrollen, vorrangige Behandlung bei Beschau und die Möglichkeit der
+Vorabmitteilung. Die Bewilligung setzt eine mindestens dreijährige
+Geschäftstätigkeit, ein Buchführungssystem mit Prüfpfad und nachgewiesene
+Zahlungsfähigkeit voraus.
+
+5. Zolllager
+
+Im Zolllager Typ E entfällt die Bindung an einen zugelassenen Ort. Die
+Lagerdauer ist grundsätzlich unbegrenzt. Einfuhrabgaben entstehen erst mit der
+Überführung in den zollrechtlich freien Verkehr.

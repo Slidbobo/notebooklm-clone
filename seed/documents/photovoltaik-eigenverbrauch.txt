@@ -1,0 +1,35 @@
+Photovoltaik und Eigenverbrauch im Einfamilienhaus
+
+1. Anlagengröße
+
+Die installierte Leistung wird in Kilowatt Peak angegeben, kurz kWp. Ein
+Quadratmeter marktüblicher Modulfläche liefert derzeit rund 0,21 kWp. Eine
+typische Dachbelegung im Einfamilienhaus ergibt 8 bis 12 kWp.
+
+Der spezifische Jahresertrag liegt in Deutschland je nach Standort und
+Ausrichtung zwischen 900 und 1.100 Kilowattstunden je kWp. Eine Ost-West-Anlage
+verliert gegenüber reiner Südausrichtung etwa 15 Prozent Jahresertrag, erzeugt
+den Strom aber gleichmäßiger über den Tag verteilt.
+
+2. Eigenverbrauchsquote
+
+Ohne Speicher liegt die Eigenverbrauchsquote eines Haushalts ohne Wärmepumpe bei
+25 bis 30 Prozent. Ein Batteriespeicher mit 5 bis 10 Kilowattstunden nutzbarer
+Kapazität hebt sie auf 55 bis 70 Prozent.
+
+Die Faustregel für die Speicherauslegung lautet: eine Kilowattstunde nutzbare
+Kapazität je 1.000 Kilowattstunden Jahresverbrauch. Größere Speicher erhöhen die
+Quote nur noch geringfügig und rechnen sich über die Lebensdauer nicht.
+
+3. Zusammenspiel mit der Wärmepumpe
+
+Eine Wärmepumpe verschiebt den Verbrauch in die Wintermonate, in denen die
+Anlage am wenigsten liefert. Der rechnerische Deckungsbeitrag der Photovoltaik an
+der Heizarbeit liegt deshalb nur bei 15 bis 25 Prozent, obwohl die
+Eigenverbrauchsquote insgesamt steigt.
+
+4. Vergütung
+
+Für Anlagen bis 10 kWp mit Überschusseinspeisung gilt ein fester
+Vergütungssatz über 20 Jahre zuzüglich des Inbetriebnahmejahres. Der
+Eigenverbrauch ist von der EEG-Umlage befreit.

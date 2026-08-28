@@ -1,0 +1,38 @@
+Wärmepumpen im Gebäudebestand: technische Grundlagen
+
+1. Arbeitsprinzip
+
+Eine Wärmepumpe entzieht einer Umweltwärmequelle Energie auf niedrigem
+Temperaturniveau und hebt sie über einen Kältekreisprozess auf ein für die
+Heizung nutzbares Niveau an. Der Verdichter ist dabei der einzige Bauteil, das
+elektrische Energie in nennenswertem Umfang aufnimmt.
+
+2. Jahresarbeitszahl
+
+Die Jahresarbeitszahl, kurz JAZ, beschreibt das Verhältnis der über ein Jahr
+abgegebenen Wärmemenge zur aufgenommenen elektrischen Energie. Eine
+Luft-Wasser-Wärmepumpe im unsanierten Bestand erreicht typischerweise eine JAZ
+zwischen 2,6 und 3,2. Sole-Wasser-Anlagen mit Erdsonde liegen bei 3,8 bis 4,5,
+weil die Quellentemperatur im Winter deutlich stabiler bleibt.
+
+Als wirtschaftliche Untergrenze für den Betrieb im Bestand gilt eine JAZ von
+3,0. Darunter liegt der Betrieb bei den derzeitigen Strom- und Gaspreisen in der
+Regel über den Kosten einer Gasbrennwerttherme.
+
+3. Vorlauftemperatur
+
+Der wichtigste Einzelfaktor für die Effizienz ist die Vorlauftemperatur. Jedes
+Kelvin weniger verbessert die Arbeitszahl um etwa 2,5 Prozent. Ein
+Heizkörperbestand, der auf 70 Grad Celsius ausgelegt wurde, lässt sich häufig
+allein durch hydraulischen Abgleich und den Austausch der drei ungünstigsten
+Heizkörper auf 50 Grad Celsius absenken.
+
+Eine Flächenheizung mit 35 Grad Celsius Vorlauf ist der Idealfall, aber im
+Bestand selten ohne Eingriff in den Fußbodenaufbau herstellbar.
+
+4. Auslegung und Sperrzeiten
+
+Die Heizlast ist nach DIN EN 12831 zu ermitteln. Eine Überdimensionierung führt
+zu Taktbetrieb und verkürzt die Lebensdauer des Verdichters spürbar.
+Netzbetreiber dürfen die Anlage nach Paragraf 14a EnWG steuerbar anbinden; für
+die Auslegung ist eine tägliche Sperrzeit von bis zu zwei Stunden anzusetzen.

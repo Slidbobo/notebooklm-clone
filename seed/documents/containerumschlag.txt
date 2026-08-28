@@ -1,0 +1,33 @@
+Containerumschlag im Seehafen: Kennzahlen und Abläufe
+
+1. Mengeneinheit
+
+Der Umschlag wird in TEU gemessen, Twenty-foot Equivalent Unit. Ein
+Vierzig-Fuß-Container zählt als zwei TEU. Die Kennzahl bildet Volumen ab, nicht
+Gewicht, weshalb sie für die Auslastung der Kaikapazität aussagekräftig ist, für
+die Auslegung der Krantechnik dagegen nur eingeschränkt.
+
+2. Kranspiele
+
+Die Leistung einer Containerbrücke wird in Kranspielen je Stunde angegeben. Ein
+Kranspiel umfasst die vollständige Bewegung vom Aufnehmen bis zum Absetzen und
+die Rückfahrt. Moderne Brücken erreichen 28 bis 32 Kranspiele je Stunde im
+Einzelhub, Doppelhubbrücken bis zu 45.
+
+Die Bruttoproduktivität einer Abfertigung liegt regelmäßig 20 bis 30 Prozent
+unter der technischen Spitzenleistung, weil Lukendeckelbewegungen,
+Stauplanwechsel und Wartezeiten auf Horizontaltransport einfließen.
+
+3. Liegezeit
+
+Die Liegezeit eines Großcontainerschiffs mit 20.000 TEU Kapazität beträgt bei
+einem Umschlag von 6.000 Bewegungen und acht eingesetzten Brücken rund 30
+Stunden. Jede zusätzliche Brücke verkürzt die Liegezeit unterproportional, weil
+die Verkehrswege an der Kaikante zum Engpass werden.
+
+4. Yard und Stellplätze
+
+Die Stellplatzkapazität wird in TEU-Ground-Slots angegeben. Als
+Planungsrichtwert gilt eine Umschlagleistung von 900 bis 1.200 TEU je
+Ground-Slot und Jahr. Eine Auslastung über 75 Prozent führt zu deutlich
+steigenden Umstapelbewegungen, im Fachjargon Shuffle-Moves.
