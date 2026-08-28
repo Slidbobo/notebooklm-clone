@@ -10,7 +10,7 @@ die Auskunft, wenn die Quellen sie nicht hergeben.
 
 ## Deployment
 
-https://notebooklm-clone-gilt.vercel.app
+https://notebooklm-clone.vercel.app
 
 Serverless Functions laufen in `fra1` (Frankfurt), zusammen mit der Datenbank
 und dem Blob-Store. Demo-Zugangsdaten folgen mit Phase 1.
