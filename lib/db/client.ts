@@ -14,6 +14,12 @@ import { serverEnv } from "@/lib/env";
  * The Neon driver only speaks to Neon's HTTP/WS proxy, which would make the
  * access-control tests impossible to run against the plain pgvector container
  * used in CI. One driver for both environments keeps the tests honest.
+ *
+ * Connections are opened on first use, never at module evaluation. Next.js
+ * imports route modules while collecting page data at build time, where no
+ * database credentials exist; a connection created at import time fails the
+ * build. Lazy initialisation also keeps cold starts from dialling out for
+ * requests that never touch the database.
  */
 declare global {
   // Reused across hot reloads in development so we do not leak connections.
@@ -30,10 +36,19 @@ function createClient() {
   });
 }
 
-const sql = globalThis.__notebooklmSql ?? createClient();
-if (process.env.NODE_ENV !== "production") {
-  globalThis.__notebooklmSql = sql;
+export function getSql() {
+  globalThis.__notebooklmSql ??= createClient();
+  return globalThis.__notebooklmSql;
 }
 
-export const db = drizzle(sql);
-export { sql };
+export function getDb() {
+  return drizzle(getSql());
+}
+
+/** Closes the pool. Used by tests; the serverless runtime tears itself down. */
+export async function closeDb() {
+  const existing = globalThis.__notebooklmSql;
+  if (!existing) return;
+  globalThis.__notebooklmSql = undefined;
+  await existing.end({ timeout: 5 });
+}

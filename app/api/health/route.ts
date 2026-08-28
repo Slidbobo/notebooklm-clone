@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sql } from "@/lib/db/client";
+import { getSql } from "@/lib/db/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   try {
-    const rows = await sql<{ vector_available: boolean }[]>`
+    const rows = await getSql()<{ vector_available: boolean }[]>`
       SELECT EXISTS (
         SELECT 1 FROM pg_available_extensions WHERE name = 'vector'
       ) AS vector_available
