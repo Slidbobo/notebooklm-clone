@@ -40,6 +40,19 @@ von erzeugtem SQL. Ein Mock würde den Mock prüfen. Ein Neon-Branch würde
 Produktionszugangsdaten in die CI tragen. `docker-compose.yml` benutzt dasselbe
 Image, damit lokal und in der CI dasselbe läuft.
 
+**Vercel-Scope: `keybilium-projects`.** Verworfen: der Scope `homesk`, unter dem
+das Projekt zuerst angelegt war. Grund: `homesk` ist ein Kunden-Scope mit
+fremden Projekten, dort gehört ein Bewerbungsprojekt nicht hin. Der
+KeyBilium-Account geht später in persönlichen Besitz über und ist damit der
+neutrale Ort. Das Projekt unter `homesk` wurde samt Deployments gelöscht, die
+Git-Verbindung vorher gelöst, damit ein Push nicht zwei Projekte deployt.
+
+**Function Region `fra1` in `vercel.json` statt in den Projekteinstellungen.**
+Verworfen: die Region im Vercel-Dashboard setzen. Grund: Datenbank und
+Blob-Store liegen in `eu-central-1`. Steht die Region in der Repository-Datei,
+ist sie versioniert, im Review sichtbar und überlebt ein Neuanlegen des
+Projekts, was beim Scope-Wechsel gerade passiert ist.
+
 **Next.js 15 bleibt, `postcss` und `esbuild` werden per `overrides` angehoben.**
 Verworfen: `npm audit fix --force`, das auf Next.js 16 aktualisiert hätte.
 Grund: Der Stack ist im Briefing festgelegt. Beide Warnungen betrafen
