@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NotebookLM Clone
 
-## Getting Started
+Quellengebundener Dokumenten-Chat mit erzwungener Mandantentrennung. Nutzer
+legen Notebooks an, laden PDF- und TXT-Quellen hoch und stellen Fragen dazu.
+Antworten stützen sich ausschließlich auf gefundene Textstellen und verweigern
+die Auskunft, wenn die Quellen sie nicht hergeben.
 
-First, run the development server:
+> Stand: Phase 0 von 5. Diese Datei wird in Phase 5 vollständig ausgeschrieben.
+> Die Anforderungen an den Endstand stehen in `CLAUDE.md`.
+
+## Lokales Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local     # Werte eintragen, siehe Kommentare in der Datei
+docker compose up -d           # Postgres mit pgvector auf Port 5432
+npm install
+npm run db:migrate             # ab Phase 1
+npm run dev                    # http://localhost:3000
+npm test                       # braucht die laufende Datenbank
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Dokumente
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `CLAUDE.md`: das Projektbriefing, zugleich Startprompt für die Zusammenarbeit
+  mit Claude Code
+- `docs/decisions.md`: Entscheidungen je Phase mit verworfener Alternative und
+  Begründung
+- `docs/ai-sessions/`: die vollständigen Sessions dieser Zusammenarbeit
