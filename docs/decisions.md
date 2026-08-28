@@ -58,3 +58,44 @@ Verworfen: `npm audit fix --force`, das auf Next.js 16 aktualisiert hätte.
 Grund: Der Stack ist im Briefing festgelegt. Beide Warnungen betrafen
 Build-Werkzeuge, nicht die Laufzeit. Die Überschreibungen lösen sie ohne den
 Stack zu brechen, `npm audit` meldet null Befunde.
+
+## Phase 1, Identität und Daten
+
+**Embedding-Breite 1536 statt der Modellvorgabe 3072.** Verworfen: die
+Standardausgabe von `gemini-embedding-001` unverändert speichern. Grund:
+pgvector speichert bis 16000 Dimensionen, indiziert mit HNSW und IVFFlat aber
+nur bis 2000. Eine 3072 breite Spalte hätte bei jeder Suche einen sequenziellen
+Scan bedeutet. 1536 ist der breiteste indizierbare Wert unter den vom Modell
+empfohlenen Größen. Getrunkierte Vektoren dieses Modells sind nicht auf Länge
+eins normiert, das Embedding-Modul normalisiert sie deshalb vor dem Speichern.
+
+**Zugriffsschicht als eine Datei mit gleichförmigen Funktionen.** Verworfen:
+eine generische Repository-Abstraktion, die den Mandantenfilter automatisch
+anhängt. Grund: Automatik verschiebt die Frage nur. Wer prüfen will, ob der
+Filter greift, müsste den Generator lesen statt die Abfrage. So steht in jeder
+einzelnen Funktion `eq(table.ownerId, userId)` sichtbar in derselben
+WHERE-Klausel wie die Suche, und die Prüfung ist ein Blick statt einer
+Beweisführung.
+
+**Zwei benannte Casts auf `UserId` statt einer generischen Konstruktorfunktion.**
+Verworfen: ein `asUserId(string)`, das überall aufrufbar ist. Grund: Der Branded
+Type ist nur so viel wert wie die Zahl der Stellen, die ihn erzeugen dürfen. Es
+gibt genau zwei, `userIdFromSession` für den Anwendungspfad und
+`trustedUserIdForSeed` für das Offline-Skript, jede mit eigener Begründung im
+Code. Die Frage "woher kommt Mandantenidentität" ist damit eine Suche nach zwei
+Symbolen.
+
+**Passwort-Hashing mit scrypt aus `node:crypto` statt bcrypt oder Argon2id.**
+Verworfen: `bcryptjs`, die übliche Wahl. Grund: scrypt ist speicherhart, von
+OWASP als Passwort-Hash anerkannt und Teil der Laufzeit, also kein zusätzliches
+Paket und kein natives Modul im Vercel-Build für eine Funktion, die nur
+existiert, damit ein Prüfer sich anmelden kann. Die Kostenparameter stehen im
+Hash-String, ein späteres Anheben entwertet bestehende Hashes nicht.
+
+**Tests dürfen unter die Zugriffsschicht greifen, Anwendungscode nicht.**
+Verworfen: die Lint-Regel auch auf `tests/` anwenden. Grund: Die Zugriffstests
+müssen Daten für zwei Konten anlegen und danach von außen prüfen, dass die
+Grenze hält. Eine Regel, die ihnen den direkten Zugriff verbietet, würde genau
+den Test verhindern, der die These belegt. `tests/access-layer-boundary.test.ts`
+lintet dafür einen absichtlichen Verstoß und schlägt fehl, wenn die Regel nicht
+mehr greift.
