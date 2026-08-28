@@ -55,6 +55,54 @@ weil Neons Pooler PgBouncer im Transaction-Mode betreibt und keine Prepared
 Statements unterstützt. Die Testbarkeit der Sicherheitsthese hat hier den
 Treiber bestimmt, nicht umgekehrt.
 
+### LLM-Zugriff nur über lib/llm, Anbieter austauschbar an einer Stelle
+
+**Entscheidung:** Jeder Aufruf eines Sprach- oder Embedding-Modells läuft durch
+`lib/llm/`. Außerhalb dieses Verzeichnisses gibt es keinen direkten SDK-Aufruf,
+und die Modellkonfiguration steht an einer einzigen Stelle.
+
+**Alternative:** Das Vercel AI SDK dort aufrufen, wo es gebraucht wird, also in
+der Chat-Route und im Ingestion-Pfad. Weniger Code, ein Sprung weniger beim
+Lesen.
+
+**Begründung:** Anbieterunabhängigkeit. Ein Wechsel des Modellanbieters ist
+sonst eine Suche über die gesamte Codebasis, mit dem Risiko, eine Aufrufstelle
+zu übersehen. Der konkrete Anlass für diesen Prototyp ist die Frage der
+Auftragsverarbeitung: Die Datenschutzbedingungen von Google AI Studio sind für
+Entwickler im EWR, der Schweiz und dem Vereinigten Königreich unkritisch, dort
+gelten laut den Gemini-API-Nutzungsbedingungen die Bedingungen der
+kostenpflichtigen Dienste für alle Dienste, auch für das kostenlose Kontingent,
+Prompts und Antworten werden also nicht zur Produktverbesserung verwendet. Was
+ein API-Schlüssel aus AI Studio nicht mitbringt, ist ein vertraglich
+zugesicherter Auftragsverarbeitungsvertrag. Für einen Prototyp mit Demo-Daten
+ist das unerheblich. Sobald echte Kundendokumente verarbeitet würden, wäre der
+Wechsel zu einem Anbieter mit vertraglicher Zusicherung erforderlich, etwa
+Vertex AI unter dem Cloud-Rahmenvertrag. Diese Abstraktion macht daraus eine
+Änderung in einem Verzeichnis statt einer Migration.
+
+Der API-Schlüssel liegt in einem eigenen Google-Cloud-Projekt `notebooklm-clone`
+und nicht im Default-Projekt. Damit ist er isoliert widerrufbar und das
+Kontingent von anderen Projekten getrennt.
+
+### Migrationen laufen im Build
+
+**Entscheidung:** `npm run build` wendet ausstehende Migrationen an, bevor
+Next.js baut, abgesichert durch einen Advisory Lock in Postgres.
+
+**Alternative:** Migrationen von Hand aus der Entwicklungsumgebung gegen die
+Produktionsdatenbank anwenden.
+
+**Begründung:** Vercel gibt Produktions-Secrets nicht an die CLI heraus, ein
+`vercel env pull` liefert für alle sensiblen Werte Platzhalter. Der Weg von Hand
+hätte also bedeutet, eine Verbindungszeichenfolge außerhalb der Plattform
+weiterzureichen. Im Build stehen die Zugangsdaten ohnehin bereit, und das Schema
+einer deployten Umgebung kann nicht mehr von dem Code abweichen, mit dem sie
+deployt wurde. Der Advisory Lock ist keine Vorsichtsmaßnahme auf Verdacht: beim
+ersten Versuch liefen ein Git-Deploy und ein manuelles Deploy gleichzeitig, beide
+migrierten dieselbe Datenbank, und eines davon ist mitten in der Migration
+abgebrochen. `pg_advisory_lock` serialisiert sie, ohne zusätzliche
+Infrastruktur, und wird beim Verbindungsabbruch automatisch freigegeben.
+
 ## Dokumente
 
 - `CLAUDE.md`: das Projektbriefing, zugleich Startprompt für die Zusammenarbeit

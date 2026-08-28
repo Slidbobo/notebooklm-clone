@@ -99,3 +99,42 @@ Grenze hält. Eine Regel, die ihnen den direkten Zugriff verbietet, würde genau
 den Test verhindern, der die These belegt. `tests/access-layer-boundary.test.ts`
 lintet dafür einen absichtlichen Verstoß und schlägt fehl, wenn die Regel nicht
 mehr greift.
+
+## Korrektur am Briefing
+
+**Die Begründung für die LLM-Provider-Abstraktion im Briefing ist sachlich
+falsch und wird hier richtiggestellt.** `CLAUDE.md` nennt als Grund, dass der
+Gemini Free Tier Google die Nutzung der Prompts für Modelltraining erlaubt. Die
+Nutzungsbedingungen der Gemini API sagen für unsere Rechtslage das Gegenteil:
+Für Nutzer im EWR, der Schweiz und dem Vereinigten Königreich gelten die
+Bedingungen der kostenpflichtigen Dienste für alle Dienste, ausdrücklich
+einschließlich Google AI Studio und des unbezahlten Kontingents der API. Prompts
+und Antworten werden dort also nicht zur Produktverbesserung verwendet.
+
+Die Abstraktion bleibt, die Begründung wechselt: Anbieterunabhängigkeit, und die
+Möglichkeit, für echte Kundendokumente auf einen Anbieter mit vertraglich
+zugesichertem Auftragsverarbeitungsvertrag zu wechseln, den ein
+AI-Studio-Schlüssel nicht mitbringt. Das Briefing bleibt unverändert im Repo,
+weil es der Ausgangsstand ist; diese Datei hält fest, was die Prüfung an der
+Dokumentation ergeben hat.
+
+**Der Gemini-Schlüssel liegt in einem eigenen Google-Cloud-Projekt.** Verworfen:
+den Schlüssel im Default-Projekt anlegen. Grund: isoliert widerrufbar, eigenes
+Kontingent, keine Wechselwirkung mit anderen Projekten desselben Kontos.
+
+## Phase 0, Nachtrag
+
+**Migrationen im Build statt von Hand.** Verworfen: die Produktionsdatenbank aus
+der Entwicklungsumgebung migrieren. Grund: Vercel gibt Produktions-Secrets nicht
+an die CLI heraus, `vercel env pull` schreibt für sensible Werte Platzhalter.
+Von Hand hätte bedeutet, eine Verbindungszeichenfolge außerhalb der Plattform
+weiterzureichen. Im Build sind die Zugangsdaten ohnehin vorhanden.
+
+**Advisory Lock um die Migration.** Verworfen: `drizzle-kit migrate` direkt im
+Build-Skript aufrufen. Grund: nicht theoretisch, sondern beobachtet. Beim ersten
+Produktions-Deploy liefen ein Git-Deploy und ein manuelles Deploy gleichzeitig,
+beide migrierten dieselbe Datenbank, eines brach mitten in der Migration ab.
+`scripts/migrate.ts` nimmt vorher `pg_advisory_lock`, der zweite Build wartet und
+findet danach nichts mehr zu tun. Der Lock liegt in Postgres, braucht also keine
+zusätzliche Infrastruktur, und wird beim Verbindungsabbruch von selbst
+freigegeben.
