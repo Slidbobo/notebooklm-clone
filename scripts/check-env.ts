@@ -4,7 +4,7 @@ config({ path: ".env.local" });
 
 import { checkCoreEnv, checkDeployEnv, type EnvProblem } from "@/lib/env";
 import { probeBlobStore } from "@/lib/blob/health";
-import { probeModelProvider } from "@/lib/llm/health";
+import { probeConfiguredModels, probeModelProvider } from "@/lib/llm/health";
 
 /**
  * Runs before the build, so a broken configuration stops the deploy instead of
@@ -36,10 +36,15 @@ function report(problems: EnvProblem[], level: "error" | "warning") {
 async function probeCredentials(malformed: Set<string>): Promise<boolean> {
   const probes = [
     ["GOOGLE_GENERATIVE_AI_API_KEY", probeModelProvider],
+    // Listing a model is not the same as being allowed to call it, so the
+    // configured models are actually invoked once with a minimal request.
+    ["GEMINI_MODELS", probeConfiguredModels],
     ["BLOB_READ_WRITE_TOKEN", probeBlobStore],
   ] as const;
 
-  const runnable = probes.filter(([name]) => !malformed.has(name));
+  const runnable = probes.filter(
+    ([name]) => !malformed.has(name === "GEMINI_MODELS" ? "GOOGLE_GENERATIVE_AI_API_KEY" : name),
+  );
   const outcomes = await Promise.all(runnable.map(([, probe]) => probe()));
   let fatal = false;
 

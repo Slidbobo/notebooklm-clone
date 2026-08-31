@@ -1,6 +1,6 @@
-import { and, count, cosineDistance, desc, eq, sql } from "drizzle-orm";
+import { and, asc, count, cosineDistance, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { chunks, notebooks, sources } from "@/lib/db/schema";
+import { chunks, citations, messages, notebooks, sources } from "@/lib/db/schema";
 import type { UserId } from "@/lib/db/user-id";
 
 /**
@@ -237,4 +237,79 @@ export async function searchChunks(
     .where(and(eq(chunks.ownerId, userId), eq(chunks.notebookId, notebookId)))
     .orderBy(distance)
     .limit(clampLimit(limit));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Messages and citations                                                     */
+/* -------------------------------------------------------------------------- */
+
+type NewMessage = {
+  notebookId: string;
+  role: "user" | "assistant";
+  content: string;
+};
+
+export async function appendMessage(userId: UserId, message: NewMessage) {
+  const [created] = await getDb()
+    .insert(messages)
+    .values({ ...message, ownerId: userId })
+    .returning();
+  return created ?? null;
+}
+
+export async function listMessages(userId: UserId, notebookId: string) {
+  return getDb()
+    .select()
+    .from(messages)
+    .where(and(eq(messages.ownerId, userId), eq(messages.notebookId, notebookId)))
+    .orderBy(asc(messages.createdAt))
+    .limit(MAX_ROWS);
+}
+
+/**
+ * Records which chunks an answer actually cited.
+ *
+ * Written after the stream finishes, because the citation markers only exist
+ * once the model has produced them. Chunk ids are filtered through the caller's
+ * retrieval result, so a hallucinated number cannot create a row.
+ */
+export async function saveCitations(userId: UserId, messageId: string, chunkIds: string[]) {
+  if (chunkIds.length === 0) return 0;
+
+  // The message is fetched through the tenant filter first: a foreign message id
+  // must not gain citations.
+  const [owned] = await getDb()
+    .select({ id: messages.id })
+    .from(messages)
+    .where(and(eq(messages.id, messageId), eq(messages.ownerId, userId)))
+    .limit(1);
+  if (!owned) return 0;
+
+  const inserted = await getDb()
+    .insert(citations)
+    .values(chunkIds.map((chunkId) => ({ messageId, chunkId })))
+    .onConflictDoNothing()
+    .returning({ id: citations.id });
+
+  return inserted.length;
+}
+
+/** Citations for a set of messages, with the position needed for the jump. */
+export async function listCitations(userId: UserId, messageIds: string[]) {
+  if (messageIds.length === 0) return [];
+
+  return getDb()
+    .select({
+      messageId: citations.messageId,
+      chunkId: chunks.id,
+      sourceId: chunks.sourceId,
+      filename: sources.filename,
+      charStart: chunks.charStart,
+      charEnd: chunks.charEnd,
+    })
+    .from(citations)
+    .innerJoin(chunks, eq(chunks.id, citations.chunkId))
+    .innerJoin(sources, eq(sources.id, chunks.sourceId))
+    .innerJoin(messages, eq(messages.id, citations.messageId))
+    .where(and(eq(messages.ownerId, userId), inArray(citations.messageId, messageIds)));
 }
