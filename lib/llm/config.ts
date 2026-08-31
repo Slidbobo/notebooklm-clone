@@ -24,8 +24,16 @@ export const EMBEDDING_DIMENSIONS = 1536;
 /** Embedding model. Fixed by the briefing; see docs/decisions.md for the check. */
 export const EMBEDDING_MODEL = "gemini-embedding-001";
 
-/** Chat model. Flash-Lite is the cheapest tier that still follows a strict system prompt. */
-export const CHAT_MODEL = "gemini-2.5-flash-lite";
+/**
+ * Chat model. Flash-Lite is the cheapest tier that still follows a strict system
+ * prompt reliably.
+ *
+ * Not 2.5: that generation is still listed by the models endpoint but the API
+ * refuses it for new keys with "no longer available to new users". Being listed
+ * and being usable are different things, which is why the build check makes an
+ * actual one-token call instead of trusting the catalogue.
+ */
+export const CHAT_MODEL = "gemini-3.5-flash-lite";
 
 /**
  * Embedding requests per call. The provider accepts batches, and a single
@@ -33,3 +41,22 @@ export const CHAT_MODEL = "gemini-2.5-flash-lite";
  * document worth uploading.
  */
 export const EMBEDDING_BATCH_SIZE = 32;
+
+/**
+ * Minimum cosine similarity for a chunk to count as a usable source.
+ *
+ * Calibrated, not guessed. Eight questions that the seed documents clearly
+ * answer scored between 0.728 and 0.774. Six questions that they clearly do not
+ * answer, including two aimed at the other account's subject matter, scored
+ * between 0.468 and 0.543. The gap is 0.185 wide and 0.65 sits inside it, with
+ * 0.107 of margin above the strongest false positive and 0.078 below the
+ * weakest true positive. The asymmetry is deliberate: answering from a weak
+ * match is a worse failure here than declining a question that was answerable.
+ *
+ * Without a floor, top-k retrieval always returns something, and the system
+ * would answer every question from whatever was least unrelated.
+ */
+export const MIN_SIMILARITY = 0.65;
+
+/** Chunks fed to the model per answer. */
+export const RETRIEVAL_LIMIT = 8;
