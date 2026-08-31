@@ -359,21 +359,38 @@ npm run walkthrough    # sichtbarer Browserdurchlauf gegen Produktion
 
 `npm run walkthrough` fährt zehn Schritte gegen die Live-Umgebung, sichtbar und
 verlangsamt, mit Screenshot je Schritt. Ich habe ihn eingebaut, weil ich die
-Oberfläche bis dahin nie angesehen hatte, und der erste Lauf hat das sofort
-bestraft: alle 49 Tests waren grün, während der gesamte Fließtext der Anwendung
-in Times statt in der eingebundenen Schrift renderte. Kein Typecheck, kein
-Linter und kein Integrationstest prüft, wie etwas aussieht. Dazu kamen eine
-englische Next.js-Standardseite als 404 an genau der Stelle, an der die
-404-statt-403-Entscheidung sichtbar wird, und ein Löschknopf ohne Rückfrage.
-Alle drei sind behoben, die Schriftkorrektur gegen die Live-Seite nachgemessen
-statt nachgesehen.
+Oberfläche bis dahin nie angesehen hatte, und er hat sich in zwei Läufen selbst
+gerechtfertigt.
 
-Die CI führt Typecheck, Lint und Tests gegen einen
-`pgvector/pgvector`-Service-Container aus und prüft nach jedem Push, dass der
-gepushte Commit live ist und seine Datenbank erreicht. Der Build selbst
-validiert vorher die Umgebungsvariablen nach Form, ruft die konfigurierten
-Modelle und den Blob-Store einmal wirklich auf und durchsucht danach das
-erzeugte Client-Bundle nach Zugangsdaten.
+**Der erste Lauf.** Alle 49 Tests waren grün, während der gesamte Fließtext der
+Anwendung in Times statt in der eingebundenen Schrift renderte. Die
+Schriftvariable wurde per Klasse auf `<body>` gesetzt, die CSS-Regel las sie auf
+`<html>`, und der Theme-Token verwies zusätzlich auf sich selbst. Überschriften
+sahen richtig aus, weil sie die Schriftfamilie direkt benennen. Kein Typecheck,
+kein Linter und kein Integrationstest prüft, wie eine Seite aussieht. Derselbe
+Lauf zeigte an genau der Stelle, an der die 404-statt-403-Entscheidung sichtbar
+wird, die englische Next.js-Standardseite, und einen Löschknopf ohne Rückfrage.
+
+**Der zweite Lauf.** Er lief gegen dieselbe Anwendung und war grün, wo der erste
+rot war: das Zitat in Schritt 6 ließ sich anklicken. Der Unterschied lag nicht im
+Code, sondern im Zustand der Datenbank. Der Stream lieferte damals nur eine
+Chunk-Id, und der Client löste die Quellen-Id über eine Tabelle auf, die aus den
+Zitaten bereits gespeicherter Nachrichten gebaut wurde. In einem frisch
+geseedeten Notebook ist diese Tabelle leer, also blieb das erste Zitat einer
+Sitzung reiner Text. Der erste Lauf traf genau diesen Zustand, der zweite lief
+auf dem Verlauf, den der erste hinterlassen hatte. Nach einem Reload
+funktionierte es, was den Fehler schlimmer macht statt harmloser: in einer
+aufgezeichneten Vorführung hätte er geklappt und bei der Person, die die
+Anwendung zum ersten Mal öffnet, nicht. Behoben, indem die Quellen-Id mit dem
+Stream mitreist und der Client gar keinen Zustand mehr dafür hält.
+
+Ein Fehler, der von der Reihenfolge der Läufe abhängt, taucht in keinem der 49
+Tests auf, weil jeder von ihnen seine eigenen Daten anlegt. Zusammen mit der
+Times-Schrift ist das mein bestes Argument dafür, dass grüne Tests und eine
+funktionierende Oberfläche zwei verschiedene Dinge sind. Der Durchlauf bricht
+deshalb auch nicht beim ersten Fehler ab, sondern sammelt alle und meldet am
+Ende; die abgebrochene Fassung hatte vier Schritte verschluckt. Er räumt die
+Quelle und den Chatverlauf, die er selbst erzeugt, hinterher wieder ab.
 
 ## Dokumente
 
