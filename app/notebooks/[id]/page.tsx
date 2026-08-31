@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { currentUserId } from "@/lib/auth/session";
-import { getNotebook, listSources } from "@/lib/db/access";
+import { getNotebook, listCitations, listMessages, listSources } from "@/lib/db/access";
 import { MAX_SOURCES_PER_NOTEBOOK } from "@/lib/ingestion/limits";
 import { Button } from "@/components/ui/button";
 import { deleteNotebookAction } from "../actions";
+import { ChatPanel, type ChatMessage } from "./chat-panel";
 import { SourcePanel } from "./source-panel";
 
 export default async function NotebookPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +19,36 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
   if (!notebook) notFound();
 
   const sources = await listSources(userId, notebook.id);
+  const history = await listMessages(userId, notebook.id);
+  const citationRows = await listCitations(
+    userId,
+    history.map((message) => message.id),
+  );
+
+  // Positions are assigned per message in the order the citations were stored,
+  // which mirrors the numbering the answer used.
+  const citationsByMessage = new Map<string, ChatMessage["citations"]>();
+  const sourceIdByChunk: Record<string, string> = {};
+  for (const row of citationRows) {
+    sourceIdByChunk[row.chunkId] = row.sourceId;
+    const existing = citationsByMessage.get(row.messageId) ?? [];
+    existing.push({
+      position: existing.length + 1,
+      chunkId: row.chunkId,
+      sourceId: row.sourceId,
+      filename: row.filename,
+      charStart: row.charStart,
+      charEnd: row.charEnd,
+    });
+    citationsByMessage.set(row.messageId, existing);
+  }
+
+  const messages: ChatMessage[] = history.map((message) => ({
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    citations: citationsByMessage.get(message.id) ?? [],
+  }));
 
   return (
     <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-8 px-6 py-12">
@@ -47,6 +78,13 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
           status: source.status,
           statusMessage: source.statusMessage,
         }))}
+      />
+
+      <ChatPanel
+        notebookId={notebook.id}
+        initialMessages={messages}
+        sourceIdByChunk={sourceIdByChunk}
+        ready={sources.some((source) => source.status === "ready")}
       />
     </main>
   );
