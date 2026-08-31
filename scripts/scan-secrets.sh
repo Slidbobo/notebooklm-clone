@@ -23,6 +23,14 @@ findings=0
 # like a connection string still reports.
 LOCAL_DB_CREDENTIAL='postgres:postgres@localhost'
 
+# Two values that were invented to break things on purpose. They appear in the
+# session transcripts under docs/ai-sessions, where the negative tests that
+# proved the build check and the bundle check actually fire are recorded.
+# Excluding them by name keeps the scan's signal clean; excluding them by pattern
+# would blunt the very checks they demonstrate.
+FAKE_GEMINI_KEY='AQ.thisisnotarealkeyatallbutlooksplausible'
+FAKE_BLOB_TOKEN='vercel_blob_rw_fake_token_value_here_1234'
+
 echo "== Pass 1: credential shapes in history and working tree =="
 
 # Deliberately broad. False positives are cheap to dismiss, a missed key is not.
@@ -42,7 +50,9 @@ for pattern in "${patterns[@]}"; do
   # -I skips binaries; the pathspec keeps lockfiles and build output out.
   hits=$(git grep -I -n -E "$pattern" $(git rev-list --all) -- \
           ':!package-lock.json' ':!*.map' 2>/dev/null \
-          | grep -vF "$LOCAL_DB_CREDENTIAL" | head -5)
+          | grep -vF "$LOCAL_DB_CREDENTIAL" \
+          | grep -vF "$FAKE_GEMINI_KEY" \
+          | grep -vF "$FAKE_BLOB_TOKEN" | head -5)
   if [ -n "$hits" ]; then
     echo "${RED}  FOUND${RESET} pattern /$pattern/"
     # Only the location is printed, never the matching text.
