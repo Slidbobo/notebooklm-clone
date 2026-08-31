@@ -354,7 +354,19 @@ npm test               # 49 Tests, Zugriffstests gegen echtes pgvector
 npm run eval           # Golden Set gegen die Modell-API
 npm run scan:secrets   # gesamte Git-Historie und Arbeitsverzeichnis
 npm run verify:deploy  # Live-URL, wartet auf den erwarteten Commit
+npm run walkthrough    # sichtbarer Browserdurchlauf gegen Produktion
 ```
+
+`npm run walkthrough` fährt zehn Schritte gegen die Live-Umgebung, sichtbar und
+verlangsamt, mit Screenshot je Schritt. Ich habe ihn eingebaut, weil ich die
+Oberfläche bis dahin nie angesehen hatte, und der erste Lauf hat das sofort
+bestraft: alle 49 Tests waren grün, während der gesamte Fließtext der Anwendung
+in Times statt in der eingebundenen Schrift renderte. Kein Typecheck, kein
+Linter und kein Integrationstest prüft, wie etwas aussieht. Dazu kamen eine
+englische Next.js-Standardseite als 404 an genau der Stelle, an der die
+404-statt-403-Entscheidung sichtbar wird, und ein Löschknopf ohne Rückfrage.
+Alle drei sind behoben, die Schriftkorrektur gegen die Live-Seite nachgemessen
+statt nachgesehen.
 
 Die CI führt Typecheck, Lint und Tests gegen einen
 `pgvector/pgvector`-Service-Container aus und prüft nach jedem Push, dass der

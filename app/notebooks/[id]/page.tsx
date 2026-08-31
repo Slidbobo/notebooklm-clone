@@ -3,9 +3,8 @@ import { notFound } from "next/navigation";
 import { currentUserId } from "@/lib/auth/session";
 import { getNotebook, listCitations, listMessages, listSources } from "@/lib/db/access";
 import { MAX_SOURCES_PER_NOTEBOOK } from "@/lib/ingestion/limits";
-import { Button } from "@/components/ui/button";
-import { deleteNotebookAction } from "../actions";
 import { ChatPanel, type ChatMessage } from "./chat-panel";
+import { DeleteNotebookButton } from "./delete-notebook-button";
 import { SourcePanel } from "./source-panel";
 
 export default async function NotebookPage({ params }: { params: Promise<{ id: string }> }) {
@@ -58,12 +57,7 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
         </Link>
         <div className="flex items-start justify-between gap-4">
           <h1 className="font-heading text-2xl font-semibold tracking-tight">{notebook.title}</h1>
-          <form action={deleteNotebookAction}>
-            <input type="hidden" name="id" value={notebook.id} />
-            <Button variant="outline" size="sm" type="submit">
-              Notebook löschen
-            </Button>
-          </form>
+          <DeleteNotebookButton notebookId={notebook.id} />
         </div>
         <p className="text-sm text-muted-foreground">
           {sources.length} von {MAX_SOURCES_PER_NOTEBOOK} Quellen

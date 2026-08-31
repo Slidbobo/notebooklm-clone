@@ -47,6 +47,15 @@ export default async function SourcePage({
         </p>
       </div>
 
+      {start !== null && end !== null && end > start ? (
+        // Names what the marking means. Without it the highlight reads as an
+        // imprecise guess, when it is in fact the exact passage the answer was
+        // grounded in.
+        <p className="rounded-md border border-border bg-accent/40 px-3 py-2 text-sm text-muted-foreground">
+          Hervorgehoben ist der Abschnitt, den das Modell für diese Antwort gelesen hat.
+        </p>
+      ) : null}
+
       {text.length === 0 ? (
         <p className="text-muted-foreground">Für diese Quelle liegt kein extrahierter Text vor.</p>
       ) : (
