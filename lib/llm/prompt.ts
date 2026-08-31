@@ -81,6 +81,7 @@ function systemPrompt(nonce: string): string {
     "Antworte auf Deutsch, sachlich und knapp.",
     "Jede inhaltliche Aussage muss mit einer Quellennummer belegt sein, im Format [1] oder [2], direkt hinter der Aussage.",
     "Verwende nur die Nummern, die dir unten tatsächlich vorliegen. Erfinde keine Nummern.",
+    "Jede Antwort enthält mindestens eine Quellennummer. Eine Antwort ohne Quellennummer ist ungültig, auch wenn sie inhaltlich richtig ist.",
     "Nutze kein Wissen außerhalb der Quellenauszüge, auch wenn du die Antwort zu kennen glaubst.",
     `Wenn die Auszüge die Frage nicht beantworten, antworte ausschließlich mit: ${REFUSAL_MARKER}`,
   ].join("\n");
