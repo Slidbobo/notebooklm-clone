@@ -1,5 +1,10 @@
 import { config } from "dotenv";
 
+// Seeding a remote database: point SEED_ENV_FILE at a file holding its
+// DATABASE_URL. It is loaded first and dotenv never overwrites an already set
+// variable, so the remote connection wins while the demo passwords still come
+// from .env.local, which is the only place they exist.
+if (process.env.SEED_ENV_FILE) config({ path: process.env.SEED_ENV_FILE });
 config({ path: ".env.local" });
 
 import { readFile } from "node:fs/promises";

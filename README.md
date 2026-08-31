@@ -84,6 +84,28 @@ Der API-Schlüssel liegt in einem eigenen Google-Cloud-Projekt `notebooklm-clone
 und nicht im Default-Projekt. Damit ist er isoliert widerrufbar und das
 Kontingent von anderen Projekten getrennt.
 
+### Negativtests, weil eine Prüfung sich selbst nicht prüft
+
+**Entscheidung:** Jede Schutzmaßnahme in diesem Projekt wird mit einem absichtlich
+kaputten Eingabewert getestet, nicht nur mit einem gültigen.
+
+**Alternative:** Prüfen, dass die Schutzmaßnahme bei korrekter Eingabe nicht
+stört, und daraus schließen, dass sie bei falscher Eingabe greift.
+
+**Begründung:** Der Anlass ist ein eigener Fehlgriff. Die erste Fassung der
+Blob-Prüfung hat den Fehler des Anbieters über einen Textvergleich auf der
+Fehlermeldung eingeordnet. Mit einem gültigen Token lief sie durch, und der Code
+sah richtig aus. Erst der Test mit einem frei erfundenen Token hat gezeigt, dass
+sie ihn als Netzwerkproblem einstuft und damit als nicht fatal durchwinkt, also
+genau den Fall verfehlt, für den sie existiert. Der SDK wirft typisierte Fehler,
+ein erfundener Token ergibt `BlobStoreNotFoundError`; seitdem entscheidet die
+Fehlerklasse. Dieselbe Logik trägt die Zugriffstests und die Verweigerungsfälle
+im Golden Set: eine Prüfung, die nur mit gültigen Eingaben getestet wird,
+beweist, dass sie nicht stört, nicht dass sie schützt. Auch die Lint-Regel um die
+Zugriffsschicht wird deshalb gegen einen absichtlichen Verstoß getestet, denn
+eine Regel, die still nicht mehr greift, sieht aus wie ein sauberer
+Codebestand.
+
 ### Konfiguration wird an drei Stellen geprüft
 
 **Entscheidung:** Fehlende oder ungültige Konfiguration fällt im Build auf, nicht

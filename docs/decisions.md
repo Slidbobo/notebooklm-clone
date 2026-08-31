@@ -186,3 +186,14 @@ Grund: Was still kaputtgeht, ist die Frage, ob der gepushte Commit live ist und
 seine Datenbank erreicht. Genau das prüft die CI, ohne ein einziges Secret. Die
 Gültigkeit der Anbieterschlüssel ist bereits im Build geprüft, also eine Stufe
 früher.
+
+## Offene Punkte für Phase 5
+
+- **Dritter Nutzer in der Produktionsdatenbank.** Der Test des GitHub-Logins hat
+  neben `demo-a` und `demo-b` ein echtes Konto angelegt. Vor der Abgabe bewusst
+  entscheiden, ob es bleibt, weil es belegt, dass der OAuth-Weg funktioniert,
+  oder ob es entfernt wird, weil es personenbezogene Daten in einer öffentlich
+  zugänglichen Demo sind. Ohne Entscheidung nicht abgeben.
+- **Secret-Scan über die gesamte Historie** einschließlich der Session-Exporte
+  unter `docs/ai-sessions/`, bevor das Repo öffentlich geschaltet wird.
+- **Eval-Ergebnistabelle** des letzten Laufs ins README.
