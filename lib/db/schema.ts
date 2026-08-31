@@ -194,3 +194,25 @@ export const citations = pgTable(
     uniqueIndex("citations_message_chunk_idx").on(table.messageId, table.chunkId),
   ],
 );
+
+/**
+ * Fixed-window request counter.
+ *
+ * One row per account and bucket, updated in a single statement so two
+ * concurrent requests cannot both read the old count and both be allowed. A
+ * counter in Postgres rather than a dedicated rate-limiting service: the
+ * database is already a dependency, and adding infrastructure for a demo would
+ * be a larger operational surface than the problem warrants.
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    bucket: text("bucket").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull().defaultNow(),
+    count: integer("count").notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.ownerId, table.bucket] })],
+);

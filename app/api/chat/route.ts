@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { currentUserId } from "@/lib/auth/session";
-import { appendMessage, getNotebook, saveCitations, searchChunks } from "@/lib/db/access";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/auth/rate-limit";
+import { currentAccount } from "@/lib/auth/session";
+import { appendMessage, getNotebook, saveCitations } from "@/lib/db/access";
 import { extractCitedChunkIds, renderAnswer, streamAnswer } from "@/lib/llm/chat";
-import { MIN_SIMILARITY, RETRIEVAL_LIMIT } from "@/lib/llm/config";
-import { REFUSAL_MARKER, REFUSAL_TEXT, type SourceChunk } from "@/lib/llm/prompt";
-import { embedQuery } from "@/lib/llm/embeddings";
+import { REFUSAL_MARKER, REFUSAL_TEXT } from "@/lib/llm/prompt";
+import { retrieveContext } from "@/lib/llm/retrieval";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -24,8 +24,9 @@ const bodySchema = z.object({
  * collide with size limits.
  */
 export async function POST(request: Request) {
-  const userId = await currentUserId();
-  if (!userId) return json({ error: "Nicht angemeldet." }, 401);
+  const account = await currentAccount();
+  if (!account) return json({ error: "Nicht angemeldet." }, 401);
+  const { userId } = account;
 
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) return json({ error: "Ungültige Anfrage." }, 400);
@@ -37,22 +38,21 @@ export async function POST(request: Request) {
   const notebook = await getNotebook(userId, notebookId);
   if (!notebook) return json({ error: "Notebook nicht gefunden." }, 404);
 
-  const queryVector = await embedQuery(question);
-  const hits = await searchChunks(userId, notebookId, queryVector, RETRIEVAL_LIMIT);
+  // Counted before the first embedding call, so a rejected request costs
+  // nothing beyond one database round trip.
+  const verdict = await checkRateLimit(userId, "chat", account.isDemo);
+  if (!verdict.allowed) {
+    return new Response(
+      JSON.stringify({
+        error: `Zu viele Anfragen. Bitte in ${Math.ceil(verdict.resetSeconds / 60)} Minuten erneut versuchen.`,
+      }),
+      { status: 429, headers: { "content-type": "application/json", ...rateLimitHeaders(verdict) } },
+    );
+  }
 
-  // The floor is what makes refusal possible at all: top-k always returns
-  // something, so without it the system would answer every question from
-  // whatever was least unrelated. See MIN_SIMILARITY for the calibration.
-  const usable: SourceChunk[] = hits
-    .filter((hit) => hit.similarity >= MIN_SIMILARITY)
-    .map((hit) => ({
-      id: hit.id,
-      filename: hit.filename,
-      content: hit.content,
-      charStart: hit.charStart,
-      charEnd: hit.charEnd,
-      similarity: hit.similarity,
-    }));
+  // Retrieval and the similarity floor are shared with the eval runner, so the
+  // evals measure this path rather than a second copy of it.
+  const { usable } = await retrieveContext(userId, notebookId, question);
 
   await appendMessage(userId, { notebookId, role: "user", content: question });
 

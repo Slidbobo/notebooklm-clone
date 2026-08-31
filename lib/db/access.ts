@@ -1,6 +1,6 @@
 import { and, asc, count, cosineDistance, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { chunks, citations, messages, notebooks, sources } from "@/lib/db/schema";
+import { chunks, citations, messages, notebooks, rateLimits, sources } from "@/lib/db/schema";
 import type { UserId } from "@/lib/db/user-id";
 
 /**
@@ -312,4 +312,51 @@ export async function listCitations(userId: UserId, messageIds: string[]) {
     .innerJoin(sources, eq(sources.id, chunks.sourceId))
     .innerJoin(messages, eq(messages.id, citations.messageId))
     .where(and(eq(messages.ownerId, userId), inArray(citations.messageId, messageIds)));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Rate limiting                                                              */
+/* -------------------------------------------------------------------------- */
+
+export type RateLimitVerdict = { allowed: boolean; remaining: number; resetSeconds: number };
+
+/**
+ * Counts one request against a per-account fixed window.
+ *
+ * The whole decision is one statement. Reading the count and then writing it
+ * back would let two concurrent requests both see the old value and both pass,
+ * which is precisely the case a rate limit exists for. The window resets inside
+ * the same UPDATE rather than in a separate cleanup job.
+ */
+export async function consumeRateLimit(
+  userId: UserId,
+  bucket: string,
+  limit: number,
+  windowSeconds: number,
+): Promise<RateLimitVerdict> {
+  const rows = await getDb()
+    .insert(rateLimits)
+    .values({ ownerId: userId, bucket, count: 1 })
+    .onConflictDoUpdate({
+      target: [rateLimits.ownerId, rateLimits.bucket],
+      set: {
+        count: sql`CASE WHEN ${rateLimits.windowStart} < now() - make_interval(secs => ${windowSeconds})
+                        THEN 1 ELSE ${rateLimits.count} + 1 END`,
+        windowStart: sql`CASE WHEN ${rateLimits.windowStart} < now() - make_interval(secs => ${windowSeconds})
+                              THEN now() ELSE ${rateLimits.windowStart} END`,
+      },
+    })
+    .returning({
+      count: rateLimits.count,
+      resetSeconds: sql<number>`GREATEST(0, ${windowSeconds} - EXTRACT(EPOCH FROM (now() - ${rateLimits.windowStart})))::int`,
+    });
+
+  const row = rows[0];
+  if (!row) return { allowed: false, remaining: 0, resetSeconds: windowSeconds };
+
+  return {
+    allowed: row.count <= limit,
+    remaining: Math.max(0, limit - row.count),
+    resetSeconds: row.resetSeconds,
+  };
 }

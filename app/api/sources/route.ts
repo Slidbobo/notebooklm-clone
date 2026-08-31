@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { currentUserId } from "@/lib/auth/session";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/auth/rate-limit";
+import { currentAccount } from "@/lib/auth/session";
 import { createSource } from "@/lib/db/access";
 import { isAcceptedMimeType } from "@/lib/ingestion/limits";
 import { hasQuota, ingestSource } from "@/lib/ingestion/ingest";
@@ -22,9 +23,18 @@ const bodySchema = z.object({
  * limits exist: the whole run has to finish inside one invocation.
  */
 export async function POST(request: Request) {
-  const userId = await currentUserId();
-  if (!userId) {
+  const account = await currentAccount();
+  if (!account) {
     return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+  }
+  const { userId } = account;
+
+  const verdict = await checkRateLimit(userId, "ingestion", account.isDemo);
+  if (!verdict.allowed) {
+    return NextResponse.json(
+      { error: `Zu viele Uploads. Bitte in ${Math.ceil(verdict.resetSeconds / 60)} Minuten erneut versuchen.` },
+      { status: 429, headers: rateLimitHeaders(verdict) },
+    );
   }
 
   const parsed = bodySchema.safeParse(await request.json());
