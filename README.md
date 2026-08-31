@@ -84,6 +84,35 @@ Der API-Schlüssel liegt in einem eigenen Google-Cloud-Projekt `notebooklm-clone
 und nicht im Default-Projekt. Damit ist er isoliert widerrufbar und das
 Kontingent von anderen Projekten getrennt.
 
+### Konfiguration wird an drei Stellen geprüft
+
+**Entscheidung:** Fehlende oder ungültige Konfiguration fällt im Build auf, nicht
+beim ersten Nutzer. Drei Ebenen: `scripts/check-env.ts` prüft vor dem Build Form
+und Gültigkeit, `/api/health` prüft zur Laufzeit, `scripts/verify-deployment.ts`
+prüft nach jedem Deploy und läuft als eigener CI-Job.
+
+**Alternative:** Sich auf die Validierung in `lib/env.ts` verlassen.
+
+**Begründung:** Die läuft nachweislich erst beim ersten Request. Seit der
+Datenbankzugriff faul initialisiert wird, baut das Projekt vollständig ohne
+gesetzte Umgebungsvariablen durch, was ein Build mit beiseitegeschobener
+`.env.local` bestätigt. Ein grüner Build vor einer toten Anwendung ist damit ein
+realistischer Zustand. Der Build prüft deshalb zuerst die Form jeder Variablen
+und probiert danach die beiden Anbieterzugangsdaten live an, über die Modellliste
+und einen Blob-Eintrag, beides ohne Tokenverbrauch. Ein abgelehnter Schlüssel
+bricht den Build ab, ein Netzwerkproblem beim Anbieter nicht. Die Formatregeln
+wurden gegen die tatsächlichen Werte verifiziert statt aus dem Gedächtnis
+geschrieben; der Gemini-Schlüssel dieses Projekts hat das neuere Präfix `AQ.`,
+und eine aus der Erinnerung geschriebene Regel auf `AIza` hätte einen intakten
+Schlüssel abgelehnt.
+
+Der tiefe Healthcheck unter `/api/health?deep=1` setzt eine angemeldete Session
+voraus, damit nicht öffentlich abfragbar ist, welche Abhängigkeit gerade
+ausfällt. Ein eigenes Token wurde verworfen, weil die CI das produktive
+`AUTH_SECRET` ohnehin nicht besitzen kann und ein abgeleiteter Wert dort nicht
+berechenbar wäre. Der flache Endpunkt bleibt offen und macht keine externen
+Aufrufe.
+
 ### Migrationen laufen im Build
 
 **Entscheidung:** `npm run build` wendet ausstehende Migrationen an, bevor

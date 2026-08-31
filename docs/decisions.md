@@ -138,3 +138,51 @@ beide migrierten dieselbe Datenbank, eines brach mitten in der Migration ab.
 findet danach nichts mehr zu tun. Der Lock liegt in Postgres, braucht also keine
 zusätzliche Infrastruktur, und wird beim Verbindungsabbruch von selbst
 freigegeben.
+
+## Phase 1, Konfigurationskontrolle
+
+**Die Regeln der Formatvalidierung wurden gegen die echten Werte geprüft, nicht
+aus dem Gedächtnis geschrieben.** Das war kein Formalismus: Der Gemini-Schlüssel
+dieses Projekts beginnt mit `AQ.`, nicht mit `AIza`. Ein aus der Erinnerung
+festgeschriebenes `^AIza` hätte einen intakten Schlüssel abgelehnt und den
+Deploy mit einer Fehlermeldung gestoppt, die auf die falsche Ursache zeigt.
+Geprüft wurden alle Regeln so, dass nur Treffer oder Nichttreffer ausgegeben
+wurde, nie der Wert. Die Validierung akzeptiert daher beide Formate.
+
+**Buildzeit-Prüfung statt Prüfung beim ersten Request.** Verworfen: sich auf die
+Validierung in `lib/env.ts` verlassen. Grund: Die läuft nachweislich erst zur
+Laufzeit. Nachdem der Datenbankzugriff in Phase 0 faul gemacht wurde, baut das
+Projekt vollständig ohne gesetzte Umgebungsvariablen durch, verifiziert durch
+einen Build mit beiseitegeschobener `.env.local`. Ein fehlender Wert wäre also
+erst dem ersten Nutzer aufgefallen. `scripts/check-env.ts` läuft jetzt als
+erster Schritt des Builds.
+
+**Der Build probiert die Zugangsdaten zusätzlich live an.** Verworfen: nur die
+Form prüfen. Grund: Ein Schlüssel kann formal einwandfrei und trotzdem
+widerrufen, abgelaufen oder regional gesperrt sein. Der Build fragt deshalb die
+Modell-API nach ihrer Modellliste und den Blob-Store nach einem einzigen
+Eintrag. Beides kostet keine Tokens und kein Generierungskontingent, schlägt
+aber genauso fehl wie ein echter Aufruf. Ein abgelehntes Zugangsdatum bricht den
+Build ab, ein Netzwerkproblem beim Anbieter nicht, sonst wären Deploys aus
+Gründen instabil, die nichts mit diesem Projekt zu tun haben.
+
+**Blob-Fehler werden über die Fehlerklasse klassifiziert, nicht über den
+Meldungstext.** Verworfen: Textvergleich auf der Fehlermeldung, die erste
+Fassung. Grund: Sie hat im Test einen gefälschten Token als Netzwerkproblem
+eingestuft und damit als nicht fatal durchgewinkt. Der SDK wirft typisierte
+Fehler, ein erfundener Token ergibt `BlobStoreNotFoundError`. Über die Klasse
+geprüft ist die Einordnung eindeutig.
+
+**Der tiefe Healthcheck hängt an der Session, nicht an einem eigenen Token.**
+Verworfen: ein aus `AUTH_SECRET` abgeleitetes HMAC-Token. Grund: Es hätte nichts
+gebracht. Die CI kann das produktive `AUTH_SECRET` nicht besitzen, also hätte
+auch ein abgeleitetes Token dort nicht berechnet werden können. Die Session
+existiert ohnehin, kostet keine zusätzliche Umgebungsvariable und genau darum
+ging es bei dieser Übung.
+
+**Die CI prüft nur den flachen Endpunkt.** Verworfen: die CI mit
+Produktionszugangsdaten ausstatten, damit sie auch die Anbieter prüfen kann.
+Grund: Was still kaputtgeht, ist die Frage, ob der gepushte Commit live ist und
+seine Datenbank erreicht. Genau das prüft die CI, ohne ein einziges Secret. Die
+Gültigkeit der Anbieterschlüssel ist bereits im Build geprüft, also eine Stufe
+früher.
