@@ -1,15 +1,10 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
-import { listNotebooks } from "@/lib/db/access";
 import { currentUserId } from "@/lib/auth/session";
+import { listNotebooks } from "@/lib/db/access";
 import { Button } from "@/components/ui/button";
+import { CreateNotebookForm } from "./create-notebook-form";
 
-/**
- * Phase 1 shell. Proves the whole chain end to end: a session becomes a UserId,
- * and that UserId is the only way to reach data. The notebook list is read
- * through the access layer, so what is shown here is by construction scoped to
- * the signed-in account.
- */
 export default async function Home() {
   const session = await auth();
   const userId = await currentUserId();
@@ -51,15 +46,25 @@ export default async function Home() {
         </form>
       </header>
 
+      <CreateNotebookForm />
+
       {notebooks.length === 0 ? (
-        <p className="text-muted-foreground">
-          Noch keine Notebooks. Das Anlegen kommt in Phase 2.
+        <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-muted-foreground">
+          Noch keine Notebooks. Lege oben eines an.
         </p>
       ) : (
         <ul className="divide-y divide-border rounded-lg border border-border">
           {notebooks.map((notebook) => (
-            <li key={notebook.id} className="px-4 py-3">
-              <span className="font-medium">{notebook.title}</span>
+            <li key={notebook.id}>
+              <Link
+                href={`/notebooks/${notebook.id}`}
+                className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-accent"
+              >
+                <span className="font-medium">{notebook.title}</span>
+                <span className="text-xs text-muted-foreground">
+                  {notebook.createdAt.toLocaleDateString("de-DE")}
+                </span>
+              </Link>
             </li>
           ))}
         </ul>

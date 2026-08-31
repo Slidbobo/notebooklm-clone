@@ -12,6 +12,7 @@ import path from "node:path";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth/password";
 import { createNotebook, createSource, saveExtractedText } from "@/lib/db/access";
+import { embedIntoChunks } from "@/lib/ingestion/ingest";
 import { closeDb, getDb } from "@/lib/db/client";
 import { notebooks, users } from "@/lib/db/schema";
 import { trustedUserIdForSeed, type UserId } from "@/lib/db/user-id";
@@ -107,6 +108,9 @@ async function seedAccount(entry: (typeof SEED)[number]) {
     });
     if (!source) throw new Error(`Failed to create source ${filename}`);
     await saveExtractedText(userId, source.id, text);
+
+    const chunks = await embedIntoChunks(userId, source.id, notebook.id, text);
+    console.log(`  ${filename}: ${chunks} chunks`);
   }
 
   console.log(
@@ -118,9 +122,7 @@ async function main() {
   for (const entry of SEED) {
     await seedAccount(entry);
   }
-  console.log(
-    "Seed complete. Sources carry extracted text and status 'pending'; chunking and embeddings follow in Phase 2.",
-  );
+  console.log("Seed complete: accounts, notebooks, sources, chunks and embeddings.");
 }
 
 main()
