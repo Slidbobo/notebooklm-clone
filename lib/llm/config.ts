@@ -20,3 +20,16 @@
  * so the embedding module normalises them before they are stored or compared.
  */
 export const EMBEDDING_DIMENSIONS = 1536;
+
+/** Embedding model. Fixed by the briefing; see docs/decisions.md for the check. */
+export const EMBEDDING_MODEL = "gemini-embedding-001";
+
+/** Chat model. Flash-Lite is the cheapest tier that still follows a strict system prompt. */
+export const CHAT_MODEL = "gemini-2.5-flash-lite";
+
+/**
+ * Embedding requests per call. The provider accepts batches, and a single
+ * request per chunk would exhaust the free-tier request-per-minute limit on any
+ * document worth uploading.
+ */
+export const EMBEDDING_BATCH_SIZE = 32;

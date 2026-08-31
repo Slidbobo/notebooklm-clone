@@ -1,4 +1,4 @@
-import { and, cosineDistance, desc, eq, sql } from "drizzle-orm";
+import { and, count, cosineDistance, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { chunks, notebooks, sources } from "@/lib/db/schema";
 import type { UserId } from "@/lib/db/user-id";
@@ -122,6 +122,15 @@ export async function listSources(userId: UserId, notebookId: string) {
     .limit(MAX_ROWS);
 }
 
+/** Enforces the per-notebook upload quota. Scoped like every other read. */
+export async function countSources(userId: UserId, notebookId: string): Promise<number> {
+  const [row] = await getDb()
+    .select({ total: count() })
+    .from(sources)
+    .where(and(eq(sources.ownerId, userId), eq(sources.notebookId, notebookId)));
+  return row?.total ?? 0;
+}
+
 export async function getSource(userId: UserId, sourceId: string) {
   const [found] = await getDb()
     .select()
@@ -169,6 +178,22 @@ type NewChunk = {
   embedding: number[];
 };
 
+/** Removes a source and, through the foreign keys, everything derived from it. */
+export async function deleteSource(userId: UserId, sourceId: string) {
+  const deleted = await getDb()
+    .delete(sources)
+    .where(and(eq(sources.id, sourceId), eq(sources.ownerId, userId)))
+    .returning({ id: sources.id, blobPathname: sources.blobPathname });
+  return deleted[0] ?? null;
+}
+
+/** Discards a source's chunks before re-ingesting it, so a retry cannot duplicate. */
+export async function deleteChunksForSource(userId: UserId, sourceId: string) {
+  await getDb()
+    .delete(chunks)
+    .where(and(eq(chunks.ownerId, userId), eq(chunks.sourceId, sourceId)));
+}
+
 export async function insertChunks(userId: UserId, rows: NewChunk[]) {
   if (rows.length === 0) return 0;
   const inserted = await getDb()
@@ -203,7 +228,9 @@ export async function searchChunks(
       content: chunks.content,
       charStart: chunks.charStart,
       charEnd: chunks.charEnd,
-      similarity: sql<number>`1 - ${distance}`,
+      // Parenthesised on purpose: the pgvector operators bind more loosely than
+      // arithmetic, so `1 - a <=> b` would parse as `(1 - a) <=> b` and fail.
+      similarity: sql<number>`1 - (${distance})`,
     })
     .from(chunks)
     .innerJoin(sources, eq(sources.id, chunks.sourceId))
