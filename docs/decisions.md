@@ -233,6 +233,58 @@ pgvector-Operatoren, parst also `(1 - a) <=> b` und bricht mit
 Suchlauf, behoben durch Klammern. Notiert, weil es genau die Sorte Fehler ist,
 die ein Typsystem nicht abfängt.
 
+## Phase 3, Chat
+
+**Ähnlichkeitsschwelle 0,65, gemessen statt geschätzt.** Verworfen: eine Zahl
+aus dem Bauch. Grund: Top-k-Retrieval liefert immer etwas, ohne Untergrenze
+würde das System jede Frage aus dem beantworten, was am wenigsten unpassend war.
+Gemessen an vierzehn Fragen gegen die Seed-Dokumente: acht Fragen, die die
+Quellen klar beantworten, liegen zwischen 0,728 und 0,774. Sechs Fragen, die
+sie klar nicht beantworten, darunter zwei aus dem Themenfeld des jeweils anderen
+Kontos, liegen zwischen 0,468 und 0,543. Die Lücke ist 0,185 breit. 0,65 liegt
+darin, mit 0,107 Abstand über dem stärksten Falschtreffer und 0,078 unter dem
+schwächsten echten Treffer. Die Asymmetrie ist Absicht: aus einem schwachen
+Treffer zu antworten ist hier der teurere Fehler.
+
+**Verweigerung als Eigenschaft, nicht als Fehlermeldung.** Verworfen: "keine
+Treffer gefunden". Grund: Das liest sich wie ein Defekt der Suche. Der Satz
+lautet stattdessen, dass die Frage mit den vorliegenden Quellen nicht
+beantwortbar ist und das System nicht rät. Intern arbeitet das Modell mit einem
+Marker statt mit dem Satz, damit die Verweigerung in den Evals maschinell
+erkennbar ist und nicht zwischen Antworten in der Formulierung driftet. Der
+Marker wird im Strom zurückgehalten und nie an den Client ausgeliefert.
+
+**Zufallsnonce als Trennmarker statt eines festen Delimiters.** Verworfen:
+`<source>` und Ähnliches. Grund: Ein fester Delimiter ist ein gemeinsames
+Geheimnis, das in jedem öffentlichen Repository nachlesbar ist. Ein Dokument
+kann ihn schließen und danach als vertrauenswürdiger Anweisungstext
+weiterlaufen. Der Nonce hat 128 Bit und existierte nicht, als das Dokument
+geschrieben wurde. Dazu drei weitere Maßnahmen: die Regel steht positiv und
+negativ im System-Prompt, jede Aussage muss eine Quellennummer tragen, die eine
+eingebettete Anweisung nicht liefern kann, und eine Kollision des Nonce mit dem
+Quelltext wird vor dem Absenden geprüft.
+
+**Bei fehlender Quellendeckung wird das Modell gar nicht erst aufgerufen.**
+Verworfen: immer fragen und die Verweigerung dem Modell überlassen. Grund: Das
+Ergebnis steht bereits fest, der Aufruf wäre verbrauchtes Kontingent für eine
+Antwort, die der Code kennt. Nebeneffekt: die Verweigerung ist in diesem Fall
+deterministisch.
+
+**Der Build ruft die konfigurierten Modelle wirklich auf.** Kein Entwurf, eine
+Konsequenz: `gemini-2.5-flash-lite` steht weiterhin in der Modellliste der API,
+wird für neue Schlüssel aber mit "no longer available to new users" abgelehnt.
+Aufgefallen ist das als leerer Antwortstrom, also genau als das stille
+Kaputtgehen, gegen das die Buildprüfung existiert. Eine Listenabfrage hätte es
+nicht gefunden. Die Prüfung macht jetzt je einen minimalen Chat- und
+Embedding-Aufruf; verifiziert, indem das abgeschaltete Modell erneut eingetragen
+und der Build damit zum Abbruch gebracht wurde.
+
+**Die Hervorhebung markiert den abgerufenen Chunk, nicht den einzelnen Satz.**
+Verworfen: die zitierte Aussage im Chunk zusätzlich zu lokalisieren. Grund:
+Zeitbudget, und die gröbere Markierung ist die ehrlichere: hervorgehoben wird
+exakt der Text, den das Modell gesehen hat, nicht eine nachträgliche Schätzung,
+worauf es sich bezogen haben könnte.
+
 ## Offene Punkte für Phase 5
 
 - **Dritter Nutzer in der Produktionsdatenbank.** Der Test des GitHub-Logins hat
