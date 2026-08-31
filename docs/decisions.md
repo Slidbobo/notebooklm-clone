@@ -285,6 +285,57 @@ Zeitbudget, und die gröbere Markierung ist die ehrlichere: hervorgehoben wird
 exakt der Text, den das Modell gesehen hat, nicht eine nachträgliche Schätzung,
 worauf es sich bezogen haben könnte.
 
+## Phase 4, Härtung und Messung
+
+**Rate Limiting als eine einzige SQL-Anweisung.** Verworfen: Zähler lesen,
+prüfen, zurückschreiben. Grund: Zwei gleichzeitige Anfragen würden beide den
+alten Wert sehen und beide durchgelassen, also genau der Fall, für den ein Limit
+existiert. Der Upsert entscheidet und setzt das Fenster in derselben Anweisung
+zurück, ohne Aufräumjob. Demo-Konten bekommen ein engeres Budget als reguläre
+Konten, weil ihre Zugangsdaten absichtlich im README stehen.
+
+**Zugriffstests mit festen Vektoren statt echter Embeddings.** Verworfen: die
+Testfragen gegen die Modell-API einbetten. Grund: zwei Vorteile auf einmal. Die
+Suite braucht keinen API-Schlüssel in der CI, und die zentrale Behauptung wird
+schärfer statt schwächer: Konto B bekommt nicht einen semantisch ähnlichen
+Vektor, sondern exakt denjenigen, mit dem der Chunk von Konto A gespeichert
+wurde. Das ist die stärkste Anfrage, die ein Angreifer stellen könnte, und sie
+liefert null Treffer.
+
+**Signierte URLs mit geprüftem Ablauf.** Verworfen: die Gültigkeit nur zu
+konfigurieren. Grund: Eine signierte URL ohne geprüften Ablauf ist nur eine
+längere URL. Der Test stellt eine URL mit zwei Sekunden Laufzeit aus, ruft sie
+erfolgreich ab, wartet sie ab und prüft, dass der Store sie danach ablehnt. Er
+läuft gegen den echten Store, weil den Ablauf der Store durchsetzt und nicht
+dieser Code; lokal ausgeführt, in der CI mit lauter Meldung übersprungen, weil
+die Workflow-Umgebung bewusst keine Produktions-Secrets hält.
+
+**Der Nonce wird auf Unerratbarkeit getestet, nicht nur auf Unbekanntheit.**
+Ergänzung auf Zuruf: Die Tests prüfen, dass 500 Aufrufe 500 verschiedene Nonces
+liefern, dass alle 16 Hexziffern vorkommen (ein Generator, der auf einem
+konstanten Wert klemmt, fällt hier auf statt still durchzulaufen), dass ein aus
+einer früheren Anfrage abgegriffener Marker den nächsten Zaun nicht schließt,
+und dass ein Dokument voller Kandidatenmarker den echten nicht trifft.
+
+**Der Build prüft das Client-Bundle auf Secrets.** Verworfen: sich darauf
+verlassen, dass kein Client-Komponentenpfad die Anbietermodule importiert. Grund:
+Das stimmt derzeit durch Konstruktion, und genau solche Eigenschaften hören
+während eines Refactorings auf zu stimmen, ohne dass es jemand merkt. Geprüft
+werden die literalen Werte der bekannten Secrets und zusätzlich Muster für
+Zugangsdaten, deren Wert lokal nicht vorliegt. Verifiziert, indem ein
+Blob-Token-artiger String ins Bundle geschrieben und der Check damit zum
+Fehlschlag gebracht wurde.
+
+**Das Eval-Skript teilt sich Retrieval und Schwelle mit dem Chat-Endpunkt.**
+Verworfen: die Pipeline im Eval nachbauen. Grund: Ein Eval, das eine Kopie
+ausführt, misst die Kopie.
+
+**Der Eval-Lauf ist getaktet.** Kein Entwurf, ein Fund: Ein ungetakteter zweiter
+Lauf lieferte drei leere Antworten, die zunächst wie ein Prompt-Problem
+aussahen. Es war das Anfragelimit des Free Tiers. Das Skript macht
+Anbieterfehler und leere Antworten jetzt als solche sichtbar, statt sie als
+inhaltliches Versagen zu zählen, und wartet zwischen den Fällen.
+
 ## Offene Punkte für Phase 5
 
 - **Dritter Nutzer in der Produktionsdatenbank.** Der Test des GitHub-Logins hat
