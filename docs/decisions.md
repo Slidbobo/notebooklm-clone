@@ -187,6 +187,52 @@ seine Datenbank erreicht. Genau das prüft die CI, ohne ein einziges Secret. Die
 Gültigkeit der Anbieterschlüssel ist bereits im Build geprüft, also eine Stufe
 früher.
 
+## Phase 2, Quellen
+
+**Client-Upload direkt zu Blob statt durch eine Route.** Verworfen: die Datei an
+eine Route Handler schicken. Grund: Vercel begrenzt den Request-Body einer
+Function auf 4,5 MB, das Limit für eine Quelle ist 10 MB. Der Umweg ist
+sicherheitsseitig sogar der bessere: Die Ownership-Prüfung wandert in die
+Token-Ausstellung, der Server entscheidet also vor dem ersten Byte, ob dieses
+Konto in dieses Notebook schreiben darf, und der Token begrenzt zusätzlich
+Dateityp und Größe. Verifiziert über eine Matrix: anonym, eigenes Notebook,
+fremdes Notebook, nicht existierendes Notebook, ungültige Id. Nur der eigene
+Fall bekommt einen Token.
+
+**Blob-Store privat, Lesen serverseitig.** Verworfen: `access: "public"`, womit
+die erste Fassung gebaut war. Grund: Der Store ist bewusst privat konfiguriert,
+und der Fehler wäre erst in Produktion aufgefallen, weil lokal nie eine echte
+Datei hochgeladen wurde. Ein öffentlicher Abruf der Blob-URL liefert jetzt 403,
+die Ingestion liest die Bytes serverseitig über `get()` mit dem
+Store-Zugangsdatum. Das ist die Grundlage für Sicherheitspunkt 3: ein
+hochgeladenes Dokument ist ohne diese Anwendung nicht erreichbar.
+
+**Die Ingestion nimmt eine Pfadangabe, keine URL vom Client.** Verworfen: die
+vom Upload zurückgegebene URL entgegennehmen und abrufen. Grund: Eine URL aus
+dem Request wäre eine Aufforderung, den Server auf beliebige Adressen zeigen zu
+lassen. Der Pfad wird gegen die Datenbankzeile aufgelöst, die ohnehin nur über
+die Zugriffsschicht erreichbar ist.
+
+**Harte Obergrenzen statt Warteschlange.** Verworfen: ein Queue-System für
+große Dateien. Grund: Das Briefing schließt es aus, und der synchrone Lauf muss
+in eine Function-Invocation passen. 200.000 Zeichen und zwölf Quellen je
+Notebook sind die Grenzen; darüber wird die Datei mit einer verständlichen
+Meldung abgelehnt, statt auf halbem Weg zu scheitern.
+
+**Zeichenpositionen als getestete Invariante.** Verworfen: darauf vertrauen,
+dass die Offsets stimmen. Grund: Die Hervorhebung beim Zitatsprung zeigt
+`text.slice(charStart, charEnd)`. Ein Off-by-one wäre im Video sichtbar. Der
+Test prüft für jeden Chunk, dass der Ausschnitt exakt den Inhalt ergibt, dass
+die Chunks das Dokument lückenlos abdecken und dass aufeinanderfolgende Chunks
+sich überlappen.
+
+**Operator-Präzedenz in der Ähnlichkeitsberechnung.** Kein Entwurf, ein Fehler:
+`1 - ${distance}` erzeugt `1 - a <=> b`, und Postgres bindet `-` stärker als die
+pgvector-Operatoren, parst also `(1 - a) <=> b` und bricht mit
+`operator does not exist: integer - vector` ab. Aufgefallen beim ersten echten
+Suchlauf, behoben durch Klammern. Notiert, weil es genau die Sorte Fehler ist,
+die ein Typsystem nicht abfängt.
+
 ## Offene Punkte für Phase 5
 
 - **Dritter Nutzer in der Produktionsdatenbank.** Der Test des GitHub-Logins hat
@@ -197,3 +243,10 @@ früher.
 - **Secret-Scan über die gesamte Historie** einschließlich der Session-Exporte
   unter `docs/ai-sessions/`, bevor das Repo öffentlich geschaltet wird.
 - **Eval-Ergebnistabelle** des letzten Laufs ins README.
+- **Verwaiste Blobs.** Das Löschen eines Notebooks räumt über die Fremdschlüssel
+  alle Datenbankzeilen ab, die zugehörigen Objekte im Blob-Store bleiben liegen.
+  Gehört in den README-Abschnitt "Bewusst nicht umgesetzt".
+- **Redaktion der Session-Exporte.** In einem Testlauf ist ein lokales
+  Session-JWT in die Ausgabe geraten. Es gilt nur für `localhost` und ist mit dem
+  lokalen `AUTH_SECRET` signiert, also gegen Produktion wertlos, muss aber vor
+  der Veröffentlichung aus dem Export entfernt werden.
