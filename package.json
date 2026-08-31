@@ -18,7 +18,8 @@
     "check:env": "tsx scripts/check-env.ts",
     "verify:deploy": "tsx scripts/verify-deployment.ts",
     "eval": "tsx scripts/eval.ts",
-    "check:bundle": "tsx scripts/check-bundle.ts"
+    "check:bundle": "tsx scripts/check-bundle.ts",
+    "scan:secrets": "bash scripts/scan-secrets.sh"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.58",

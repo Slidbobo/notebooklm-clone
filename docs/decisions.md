@@ -336,20 +336,48 @@ aussahen. Es war das Anfragelimit des Free Tiers. Das Skript macht
 Anbieterfehler und leere Antworten jetzt als solche sichtbar, statt sie als
 inhaltliches Versagen zu zählen, und wartet zwischen den Fällen.
 
-## Offene Punkte für Phase 5
+## Phase 5, Abschluss
 
-- **Dritter Nutzer in der Produktionsdatenbank.** Der Test des GitHub-Logins hat
-  neben `demo-a` und `demo-b` ein echtes Konto angelegt. Vor der Abgabe bewusst
-  entscheiden, ob es bleibt, weil es belegt, dass der OAuth-Weg funktioniert,
-  oder ob es entfernt wird, weil es personenbezogene Daten in einer öffentlich
-  zugänglichen Demo sind. Ohne Entscheidung nicht abgeben.
-- **Secret-Scan über die gesamte Historie** einschließlich der Session-Exporte
-  unter `docs/ai-sessions/`, bevor das Repo öffentlich geschaltet wird.
-- **Eval-Ergebnistabelle** des letzten Laufs ins README.
-- **Verwaiste Blobs.** Das Löschen eines Notebooks räumt über die Fremdschlüssel
-  alle Datenbankzeilen ab, die zugehörigen Objekte im Blob-Store bleiben liegen.
-  Gehört in den README-Abschnitt "Bewusst nicht umgesetzt".
-- **Redaktion der Session-Exporte.** In einem Testlauf ist ein lokales
-  Session-JWT in die Ausgabe geraten. Es gilt nur für `localhost` und ist mit dem
-  lokalen `AUTH_SECRET` signiert, also gegen Produktion wertlos, muss aber vor
-  der Veröffentlichung aus dem Export entfernt werden.
+**Der dritte Nutzer aus dem GitHub-Test bleibt in der Produktionsdatenbank.**
+Verworfen: ihn vor der Abgabe entfernen. Grund: Er belegt, dass der OAuth-Weg
+produktiv durchläuft und nicht nur konfiguriert ist. Ein Konto mit einer
+E-Mail-Adresse und ohne Notebooks ist ein vertretbarer Preis dafür, im README
+benannt.
+
+**Der Secret-Scan filtert die lokale Container-Kennung heraus.** Verworfen: jede
+Fundstelle melden. Grund: Der erste Lauf meldete drei Treffer, alle
+`postgres:postgres@localhost` aus `.env.example` und der CI-Konfiguration, also
+absichtlich eingecheckte Wegwerf-Zugangsdaten für eine flüchtige Datenbank ohne
+Inhalt. Ein Scanner, dessen Rauschen einen echten Fund verdeckt, ist wertlos.
+Alles andere, was wie eine Verbindungszeichenfolge aussieht, meldet weiterhin.
+Im selben Zug prüft der Scan jetzt auch die Werte aus `.env.production.local`,
+die im ersten Lauf gar nicht betrachtet wurden, obwohl sie die einzigen sind,
+die wirklich zählen.
+
+**Der eine fehlgeschlagene Eval-Fall bleibt stehen.** Verworfen: den Prompt
+weiter umschreiben oder die Prüfung aufweichen. Grund: Das Modell antwortet bei
+einer Frage inhaltlich richtig, lässt aber die Quellennummer weg. Eine
+Verschärfung der Regel im System-Prompt hat es nicht behoben. Eine bessere Zahl
+durch eine schwächere Prüfung wäre das schlechtere Ergebnis, und der Fall ist
+der Beleg dafür, dass das Golden Set tatsächlich etwas misst.
+
+## Offene Punkte, Stand Abschluss
+
+Abgearbeitet:
+
+- Dritter Nutzer aus dem GitHub-Test: bleibt, im README benannt.
+- Verwaiste Blobs beim Notebook-Löschen: im README unter "Bewusst nicht
+  umgesetzt" benannt, kein Aufräumlauf gebaut.
+- Secret-Scan über die gesamte Historie: `npm run scan:secrets`, läuft gegen
+  Musterliste und gegen die literalen Werte aus beiden Env-Dateien.
+- Eval-Ergebnistabelle im README.
+
+Offen bis unmittelbar vor der Abgabe:
+
+- Die Session-Transkripte unter `docs/ai-sessions/` fehlen noch. Nach dem Export
+  muss der Secret-Scan erneut laufen, weil Transkripte Werkzeugausgaben
+  enthalten, die nie zeilenweise gelesen wurden. Bekannt ist bereits ein Fall:
+  in einem Testlauf wurde ein lokales Session-JWT ausgegeben. Es gilt nur für
+  `localhost` und ist mit dem lokalen `AUTH_SECRET` signiert, also gegen
+  Produktion wertlos, gehört aber trotzdem aus dem Export entfernt.
+- Das Repository ist bis dahin privat.
