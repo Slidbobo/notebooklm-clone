@@ -65,3 +65,28 @@ jobs:
       - name: Audit dependencies
         run: npm audit --audit-level=high
         continue-on-error: true
+
+  verify-deployment:
+    name: Verify production deployment
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Independent of `verify`: Vercel deploys from the same push regardless of
+    # whether the test job has finished, so waiting here would only delay the
+    # check without changing what it observes.
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Shallow only. The deep endpoint needs a session, and CI holds no
+      # production credentials on purpose. What this proves is the part that
+      # actually breaks silently: the pushed commit is live and it can reach its
+      # database. Provider credentials are verified earlier, in the build itself.
+      - name: Wait for the pushed commit to be live and healthy
+        run: npm run verify:deploy -- --url=https://notebooklm-clone.vercel.app --commit=${{ github.sha }}
