@@ -31,6 +31,13 @@ LOCAL_DB_CREDENTIAL='postgres:postgres@localhost'
 FAKE_GEMINI_KEY='AQ.thisisnotarealkeyatallbutlooksplausible'
 FAKE_BLOB_TOKEN='vercel_blob_rw_fake_token_value_here_1234'
 
+# Published on purpose. The briefing requires the demo logins in the readme, so
+# finding them there is the intended state, not a leak. They are listed by
+# variable name so the distinction stays explicit: a scan that reports the same
+# two findings on every run teaches its reader to ignore it, and then it stops
+# catching the finding that matters.
+PUBLISHED_BY_DESIGN='DEMO_A_PASSWORD DEMO_B_PASSWORD'
+
 echo "== Pass 1: credential shapes in history and working tree =="
 
 # Deliberately broad. False positives are cheap to dismiss, a missed key is not.
@@ -80,6 +87,7 @@ for envfile in .env.local .env.production.local; do
     value="${value%\"}"; value="${value#\"}"
     [ ${#value} -ge 12 ] || continue
     case "$value" in *"$LOCAL_DB_CREDENTIAL"*) echo "${GREEN}  skipped${RESET} $name (throwaway local container credential)"; continue ;; esac
+    case " $PUBLISHED_BY_DESIGN " in *" $name "*) echo "${GREEN}  skipped${RESET} $name (published in the readme on purpose)"; continue ;; esac
     hits=$(git grep -I -l -F "$value" $(git rev-list --all) 2>/dev/null | head -3)
     if [ -n "$hits" ]; then
       echo "${RED}  FOUND${RESET} value of $name in history:"
