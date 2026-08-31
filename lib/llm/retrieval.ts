@@ -31,6 +31,7 @@ export async function retrieveContext(
       .filter((hit) => hit.similarity >= MIN_SIMILARITY)
       .map((hit) => ({
         id: hit.id,
+        sourceId: hit.sourceId,
         filename: hit.filename,
         content: hit.content,
         charStart: hit.charStart,

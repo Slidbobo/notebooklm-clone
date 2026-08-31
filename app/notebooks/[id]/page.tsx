@@ -27,9 +27,7 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
   // Positions are assigned per message in the order the citations were stored,
   // which mirrors the numbering the answer used.
   const citationsByMessage = new Map<string, ChatMessage["citations"]>();
-  const sourceIdByChunk: Record<string, string> = {};
   for (const row of citationRows) {
-    sourceIdByChunk[row.chunkId] = row.sourceId;
     const existing = citationsByMessage.get(row.messageId) ?? [];
     existing.push({
       position: existing.length + 1,
@@ -77,7 +75,6 @@ export default async function NotebookPage({ params }: { params: Promise<{ id: s
       <ChatPanel
         notebookId={notebook.id}
         initialMessages={messages}
-        sourceIdByChunk={sourceIdByChunk}
         ready={sources.some((source) => source.status === "ready")}
       />
     </main>

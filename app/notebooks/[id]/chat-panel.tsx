@@ -21,17 +21,15 @@ export type ChatMessage = {
   citations: CitationTarget[];
 };
 
-type StreamMetadata = { sources: Omit<CitationTarget, "sourceId">[] };
+type StreamMetadata = { sources: CitationTarget[] };
 
 export function ChatPanel({
   notebookId,
   initialMessages,
-  sourceIdByChunk,
   ready,
 }: {
   notebookId: string;
   initialMessages: ChatMessage[];
-  sourceIdByChunk: Record<string, string>;
   ready: boolean;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
@@ -66,10 +64,9 @@ export function ChatPanel({
           const last = next.at(-1);
           if (last) {
             last.content = text;
-            last.citations = sources.map((source) => ({
-              ...source,
-              sourceId: sourceIdByChunk[source.chunkId] ?? "",
-            }));
+            // Everything the link needs arrives with the stream, so a fresh
+            // notebook renders clickable citations on the first answer.
+            last.citations = sources;
           }
           return next;
         });

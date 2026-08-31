@@ -68,9 +68,14 @@ export async function POST(request: Request) {
   }
 
   const result = streamAnswer(question, usable);
+  // The source id travels with the answer. An earlier version left the client
+  // to look it up in a table built from previously stored citations, which meant
+  // the very first citation in a fresh notebook had nothing to resolve against
+  // and rendered as plain text until the page was reloaded.
   const sources = usable.map((chunk, index) => ({
     position: index + 1,
     chunkId: chunk.id,
+    sourceId: chunk.sourceId,
     filename: chunk.filename,
     charStart: chunk.charStart,
     charEnd: chunk.charEnd,

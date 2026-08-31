@@ -48,6 +48,8 @@ import { randomBytes } from "node:crypto";
 
 export type SourceChunk = {
   id: string;
+  /** Needed by the citation link, which points at the source, not the chunk. */
+  sourceId: string;
   filename: string;
   content: string;
   charStart: number;
