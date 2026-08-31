@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run db:migrate && next build --turbopack",
+    "build": "tsx scripts/check-env.ts && npm run db:migrate && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -14,10 +14,13 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "secrets:local": "tsx scripts/generate-local-secrets.ts",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "check:env": "tsx scripts/check-env.ts",
+    "verify:deploy": "tsx scripts/verify-deployment.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
+    "@vercel/blob": "^2.8.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
