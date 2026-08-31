@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "tsx scripts/check-env.ts && npm run db:migrate && next build --turbopack",
+    "build": "tsx scripts/check-env.ts && npm run db:migrate && next build --turbopack && tsx scripts/check-bundle.ts",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -16,7 +16,9 @@
     "secrets:local": "tsx scripts/generate-local-secrets.ts",
     "seed": "tsx scripts/seed.ts",
     "check:env": "tsx scripts/check-env.ts",
-    "verify:deploy": "tsx scripts/verify-deployment.ts"
+    "verify:deploy": "tsx scripts/verify-deployment.ts",
+    "eval": "tsx scripts/eval.ts",
+    "check:bundle": "tsx scripts/check-bundle.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.58",
